@@ -1,6 +1,6 @@
 'use strict'
 
-const now = Date.now()
+const now = `${Date.now()}`
 
 module.exports = {
   users: {

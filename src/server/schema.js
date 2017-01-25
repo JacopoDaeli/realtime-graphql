@@ -9,7 +9,6 @@ const {
   GraphQLObjectType,
   GraphQLList,
   GraphQLString,
-  GraphQLInt,
   GraphQLNonNull
 } = require('graphql')
 
@@ -19,8 +18,8 @@ const userType = new GraphQLObjectType({
     id: {type: GraphQLString},
     firstname: {type: GraphQLString},
     lastname: {type: GraphQLString},
-    createdAt: {type: GraphQLInt},
-    updatedAt: {type: GraphQLInt}
+    createdAt: {type: GraphQLString},
+    updatedAt: {type: GraphQLString}
   })
 })
 
@@ -32,8 +31,6 @@ module.exports = (mqttServer) => {
         hello: {
           type: GraphQLString,
           resolve (source, args, root, ast) {
-            // const fields = ast.selectionSet
-            // .selections.map((selection) => selection.name.value)
             return 'world'
           }
         },
@@ -69,19 +66,19 @@ module.exports = (mqttServer) => {
             }
             user.firstname = args.firstname ? args.firstname : user.firstname
             user.lastname = args.lastname ? args.lastname : user.lastname
-            user.updatedAt = Date.now()
+            user.updatedAt = `${Date.now()}`
 
             // Notify all the subscribers
             const subs = db.subscriptions.users[userId]
-            // console.log(subs)
             if (subs) {
               const subKeys = Object.keys(subs)
               subKeys.forEach((subKey) => {
                 const sub = subs[subKey]
                 graphql(localSchema, sub.query)
                 .then((rql) => {
+                  // console.log(rql)
                   if (rql.data && rql.errors) {
-                    return Promise.reject()
+                    return Promise.reject(rql.errors)
                   } else {
                     const message = {
                       topic: sub.topic,
@@ -89,9 +86,10 @@ module.exports = (mqttServer) => {
                       payload: JSON.stringify(rql),
                       retain: false
                     }
-                    mqttServer.publish(message, () => console.log(sub.topic))
+                    mqttServer.publish(message, () => console.log('Pushed: ' + sub.topic))
                   }
                 })
+                .catch((err) => console.log('err', err))
               })
             }
 
@@ -126,10 +124,9 @@ module.exports = (mqttServer) => {
             const oQuery = `subscription{subscribeUser(id:"${userId}"){${jFields}}}`
             const oQuerySha1 = sha1(oQuery)
             subs[oQuerySha1] = {
-              topic: `/subscriptions/users/${userId}/${oQuerySha1}`,
+              topic: `/graphql/subscriptions/${oQuerySha1}`,
               query: `query{user(id:"${userId}"){${jFields}}}`
             }
-            // console.log(`/subscriptions/users/${userId}/${oQuerySha1}`)
             return user
           }
         }

@@ -1,5 +1,7 @@
 'use strict'
 
+// NOT USED YET
+
 const db = require('./db')
 
 module.exports = (mqttServer) => {
@@ -8,6 +10,7 @@ module.exports = (mqttServer) => {
 
     },
     publish (topic, data, cb) {
+
     }
   }
 }

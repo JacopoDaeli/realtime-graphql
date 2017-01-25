@@ -2,13 +2,13 @@
 
 const mosca = require('mosca')
 const {graphql} = require('graphql')
+const schema = require('./schema')
 
 const mqttServerSettings = {
   port: process.env.MQTT_PORT || 1884
 }
 
 const mqttServer = new mosca.Server(mqttServerSettings)
-const schema = require('./schema')(mqttServer)
 
 mqttServer.on('published', (packet, client) => {
   if(!packet.topic.includes('$SYS')) {
@@ -17,18 +17,11 @@ mqttServer.on('published', (packet, client) => {
       const requestId = payload.requestId
       const q = payload.query
 
-      graphql(schema, q)
+      graphql(schema, q, null, {packet,payload,mqttServer})
       .then((rql) => {
-        const payload = {
-          requestId: requestId,
-          body: rql,
-          status: 200
-        }
-        const message = {
-          topic: `/graphql/clients/${client.id}`,
-          qos: 1,
-          retain: false
-        }
+        const topic = `/graphql/clients/${client.id}`
+        const payload = {requestId, body: rql, status: 200}
+        const message = {topic, qos: 1, retain: false}
         if (rql.data && rql.errors) {
           payload.status = 500
         }

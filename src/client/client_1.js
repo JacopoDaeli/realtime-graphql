@@ -11,23 +11,26 @@ const client  = mqtt.connect(mqttUrl, {
 client.on('connect', () => {
   const graphqlWire = require('./graphql-wire')(client)
 
+  // TEST
   graphqlWire.query('{hello}', (err, res) => {
     if (err) console.log(err)
     else console.log(`[${res.requestId}]: ${JSON.stringify(res.body)}`)
   })
 
-  graphqlWire.query('{user(id:"abcd"){id,firstname}}', (err, res) => {
+  // Q1
+  const q1 = '{user(id:"abcd"){id,firstname,pets{id,name,owner{firstname,lastname}}}}'
+  graphqlWire.query(q1, (err, res) => {
     if (err) console.log(err)
     else console.log(`[${res.requestId}]: ${JSON.stringify(res.body)}`)
   })
 
-  // SUB 1
-  const subQuery = '{subscribeUser(id:"abcd"){id,lastname}}'
-  const subQueryHash = sha1(subQuery).substring(0, 5)
-  graphqlWire.subscribe(subQuery, (err, res) => { // cb
+  // SQ1
+  const sq1 = '{subscribeUser(id:"abcd"){id,firstname,pets{id,name,owner{firstname,lastname}}}}'
+  const sq1Hash = sha1(sq1).substring(0, 5)
+  graphqlWire.subscribe(sq1, (err, res) => { // cb
     if (err) console.log(err)
-    else console.log(`[${res.requestId}]: Subscribed to ${subQuery} (${subQueryHash})`)
+    else console.log(`[${res.requestId}]: Subscribed to ${sq1} (${sq1Hash})`)
   }, (data) => { // onUpdate
-    console.log(`[SUB:${subQueryHash}]: ${JSON.stringify(data)}`)
+    console.log(`[SUB:${sq1Hash}]: ${JSON.stringify(data)}`)
   })
 })

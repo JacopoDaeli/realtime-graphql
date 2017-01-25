@@ -56,5 +56,8 @@ module.exports = (mqttClient) => {
         cb(err, res)
       })
     }
+
+    // UNSUBSCRIBE
+    // Maybe a mutation to unsubscribe?
   }
 }

@@ -3,14 +3,13 @@
 const mqtt = require('mqtt')
 const sha1 = require('sha1')
 
-const client  = mqtt.connect(`mqtt://localhost:${process.env.MQTT_PORT || 1884}`)
-
-let graphqlWire = undefined
+const mqttUrl = `mqtt://localhost:${process.env.MQTT_PORT || 1884}`
+const client  = mqtt.connect(mqttUrl, {
+  reconnectPeriod: 0
+})
 
 client.on('connect', () => {
-  if (!graphqlWire) {
-    graphqlWire = require('./graphql-wire')(client)
-  }
+  const graphqlWire = require('./graphql-wire')(client)
 
   const mut = '{updateUser(id:"abcd",firstname:"opocaJ"){id,firstname}}'
   graphqlWire.mutate(mut, (err, res) => {

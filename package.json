@@ -1,0 +1,27 @@
+{
+  "name": "realtime-graphql",
+  "version": "1.0.0",
+  "description": "A proposition for real-time applications with GraphQL, Node.js and MQTT.",
+  "scripts": {
+    "start-server": "node src/server/index.js",
+    "start-client1": "node src/client/client_1.js",
+    "start-client2": "node src/client/client_2.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JacopoDaeli/realtime-graphql.git"
+  },
+  "author": "Jacopo Daeli <jacopo.daeli@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JacopoDaeli/realtime-graphql/issues"
+  },
+  "homepage": "https://github.com/JacopoDaeli/realtime-graphql#readme",
+  "dependencies": {
+    "express": "^4.14.1",
+    "express-graphql": "^0.6.3",
+    "graphql": "^0.9.1",
+    "mqtt": "^2.3.1",
+    "mqtt-connection": "^3.0.0"
+  }
+}

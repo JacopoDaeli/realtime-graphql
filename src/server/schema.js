@@ -1,6 +1,5 @@
 'use strict'
 
-const sha1 = require('sha1')
 const db = require('./db')
 
 const {
@@ -11,15 +10,6 @@ const {
   GraphQLString,
   GraphQLNonNull
 } = require('graphql')
-
-function buildMQTTMessage (topic, payload) {
-  return {
-    topic,
-    qos: 1,
-    payload,
-    retain: false
-  }
-}
 
 const petType = new GraphQLObjectType({
   name: 'PetType',
@@ -84,8 +74,6 @@ const schema = new GraphQLSchema({
           id: {type: new GraphQLNonNull(GraphQLString)}
         },
         resolve (parent, args, context, ast) {
-          // If parent exists, skip the fetch
-          if (parent) return parent
           const userId = args.id
           const user = db.users[userId]
           if (!user) throw new Error('Not Found')
@@ -117,28 +105,8 @@ const schema = new GraphQLSchema({
           user.lastname = args.lastname ? args.lastname : user.lastname
           user.updatedAt = `${Date.now()}`
 
-          // PUBLISH UPDATE TO SUBSCRIBERS
-          const subs = db.subscriptions.users[userId]
-          if (subs) {
-            const subKeys = Object.keys(subs)
-            subKeys.forEach((subKey) => {
-              const sub = subs[subKey]
-              graphql(schema, sub.query, user, context)
-              .then((rql) => {
-                if (rql.errors) {
-                  return Promise.reject(rql.errors)
-                }
-                return rql
-              })
-              .then((rql) => {
-                const message = buildMQTTMessage(sub.topic, JSON.stringify(rql))
-                mqttServer.publish(message, () => {
-                  console.log('Pushed: ' + sub.topic)
-                })
-              })
-              .catch((err) => console.error(err))
-            })
-          }
+          mqttServer.publish(`subscribeUserUpdate_${userId}`, user)
+          .catch((err) => console.error(err))
 
           return user
         }
@@ -148,28 +116,13 @@ const schema = new GraphQLSchema({
   subscription: new GraphQLObjectType({
     name: 'SubscriptionType',
     fields: {
-      subscribeUser: {
+      subscribeUserUpdate: {
         type: userType,
         args: {
           id: {type: new GraphQLNonNull(GraphQLString)}
         },
-        resolve (_, args, context, ast) {
-          const oQuery = context.payload.query
-          const userId = args.id
-          const user = db.users[userId]
-          if (!user) {
-            throw new Error('Not Found')
-          }
-          let subs = db.subscriptions.users[userId]
-          if (!subs) {
-            subs = db.subscriptions.users[userId] = {}
-          }
-          const oQuerySha1 = sha1(oQuery)
-          subs[oQuerySha1] = {
-            topic: `/graphql/subscriptions/${oQuerySha1}`,
-            query: oQuery.replace('subscription{subscribeUser', 'query{user')
-          }
-          return user
+        resolve (user) {
+          return user // user
         }
       }
     }

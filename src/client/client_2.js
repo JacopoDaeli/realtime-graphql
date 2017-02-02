@@ -1,22 +1,26 @@
 'use strict'
 
 const mqtt = require('mqtt')
-const sha1 = require('sha1')
+const client = mqtt.connect('mqtt://localhost:1885')
 
-const mqttUrl = `mqtt://localhost:${process.env.MQTT_PORT || 1884}`
-const client  = mqtt.connect(mqttUrl, {
-  reconnectPeriod: 0
+const sub1 = 'subscription{subscribeUserUpdate(id:"abcd"){id,firstname,pets{name}}}'
+const topic1 = `subscribeUserUpdate_abcd`
+
+const sub2 = 'subscription{subscribeUserUpdate(id:"efgh"){id,firstname,lastname}}'
+const topic2 = `subscribeUserUpdate_efgh`
+
+client.on('message', (topic, message) => {
+  console.log(message.toString())
 })
 
-client.on('connect', () => {
-  const graphqlWire = require('./graphql-wire')(client)
+client.on('connect', (connack) => {
+  console.log('connect')
+})
 
-  const subQuery = '{subscribeUser(id:"abcd"){id,firstname,updatedAt}}'
-  const subQueryHash = sha1(subQuery).substring(0, 5)
-  graphqlWire.subscribe(subQuery, (err, res) => { // cb
-    if (err) console.log(err)
-    else console.log(`[${res.requestId}]: Subscribed to ${subQuery} (${subQueryHash})`)
-  }, (data) => { // onUpdate
-    console.log(`[SUB:${subQueryHash}]: ${JSON.stringify(data)}`)
-  })
+client.subscribe(`${topic1}__${sub1}`, (err, granted) => {
+  if (err) console.error('Error subscribing...')
+})
+
+client.subscribe(`${topic2}__${sub2}`, (err, granted) => {
+  if (err) console.error('Error subscribing...')
 })

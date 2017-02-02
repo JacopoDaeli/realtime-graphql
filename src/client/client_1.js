@@ -1,36 +1,19 @@
 'use strict'
 
 const mqtt = require('mqtt')
-const sha1 = require('sha1')
+const client = mqtt.connect('mqtt://localhost:1885')
 
-const mqttUrl = `mqtt://localhost:${process.env.MQTT_PORT || 1884}`
-const client  = mqtt.connect(mqttUrl, {
-  reconnectPeriod: 0
+const sub1 = 'subscription{subscribeUserUpdate(id:"abcd"){id,firstname,lastname}}'
+const topic1 = `subscribeUserUpdate_abcd`
+
+client.on('message', (topic, message) => {
+  console.log(message.toString())
 })
 
-client.on('connect', () => {
-  const graphqlWire = require('./graphql-wire')(client)
+client.on('connect', (connack) => {
+  console.log('connect')
+})
 
-  // TEST
-  graphqlWire.query('{hello}', (err, res) => {
-    if (err) console.log(err)
-    else console.log(`[${res.requestId}]: ${JSON.stringify(res.body)}`)
-  })
-
-  // Q1
-  const q1 = '{user(id:"abcd"){id,firstname,pets{id,name,owner{firstname,lastname}}}}'
-  graphqlWire.query(q1, (err, res) => {
-    if (err) console.log(err)
-    else console.log(`[${res.requestId}]: ${JSON.stringify(res.body)}`)
-  })
-
-  // SQ1
-  const sq1 = '{subscribeUser(id:"abcd"){id,firstname,pets{id,name,owner{firstname,lastname}}}}'
-  const sq1Hash = sha1(sq1).substring(0, 5)
-  graphqlWire.subscribe(sq1, (err, res) => { // cb
-    if (err) console.log(err)
-    else console.log(`[${res.requestId}]: Subscribed to ${sq1} (${sq1Hash})`)
-  }, (data) => { // onUpdate
-    console.log(`[SUB:${sq1Hash}]: ${JSON.stringify(data)}`)
-  })
+client.subscribe(`${topic1}__${sub1}`, (err, granted) => {
+  if (err) console.error('Error subscribing...')
 })

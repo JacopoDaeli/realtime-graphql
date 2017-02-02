@@ -41,10 +41,5 @@ module.exports = {
       createdAt: now,
       updatedAt: now
     }
-  },
-  subscriptions: {
-    users: {
-      // id: {query: ""}
-    }
   }
 }
